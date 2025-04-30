@@ -2,7 +2,7 @@ from app.database import books_collection
 from app.models import BookCreate, BookUpdate, Book, BookInDB
 from pydantic_mongo import PydanticObjectId
 from typing import List, Optional
-
+from bson import ObjectId
 
 async def create_book(book: BookCreate) -> BookInDB:
     book_dict = book.dict()
@@ -13,14 +13,24 @@ async def create_book(book: BookCreate) -> BookInDB:
     return BookInDB(**book_dict)
 
 
-async def get_all_books() -> List[BookInDB]:
-    books = []
-    cursor = books_collection.find({})
+
+
+async def get_all_books(limit: int = 10, cursor: Optional[str] = None) -> List[BookInDB]:
+    query = {}
+    if cursor:
+        try:
+            query["_id"] = {"$gt": ObjectId(cursor)}
+        except:
+            raise ValueError("Invalid cursor format")
     
-    async for document in cursor:
+    books = []
+    cursor_obj = books_collection.find(query).sort("_id", 1).limit(limit)
+    
+    async for document in cursor_obj:
         books.append(BookInDB(**document))
     
     return books
+
 
 
 async def get_book(book_id: PydanticObjectId) -> Optional[BookInDB]:

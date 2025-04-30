@@ -3,6 +3,8 @@ from app.models import Book, BookCreate, BookUpdate, BookInDB
 from app.crud import create_book, get_book, get_all_books, update_book, delete_book
 from pydantic_mongo import PydanticObjectId
 from typing import List
+from fastapi import Query
+from typing import Optional
 
 app = FastAPI(title="Library API", description="API for managing library books", version="1.0.0")
 
@@ -18,8 +20,14 @@ async def create_new_book(book: BookCreate):
 
 
 @app.get("/books/", response_model=List[Book])
-async def read_books():
-    return await get_all_books()
+async def read_books(
+    limit: int = Query(10, ge=1, le=100),
+    cursor: Optional[str] = None
+):
+    try:
+        return await get_all_books(limit=limit, cursor=cursor)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid cursor format")
 
 
 @app.get("/books/{book_id}", response_model=Book)
